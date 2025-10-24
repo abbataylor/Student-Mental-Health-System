@@ -1,0 +1,23 @@
+{
+  "features": [
+    "gender",
+    "age",
+    "course",
+    "year",
+    "cgpa",
+    "marital_status"
+  ],
+  "risk_classes": [
+    "High",
+    "Low",
+    "Moderate"
+  ],
+  "need_classes": [
+    "No",
+    "Yes"
+  ],
+  "accuracy": {
+    "risk": 0.42857142857142855,
+    "need": 0.6190476190476191
+  }
+}

@@ -1,117 +1,126 @@
 <?php
-// Include database connection
-include('db_connect.php'); // Make sure this file exists and connects to your database
+session_start();
+if (!isset($_SESSION['student_id'])) {
+    header("Location: login.php");
+    exit();
+}
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get form inputs safely
-    $sleep_hours = $_POST['sleep_hours'];
-    $study_pressure = $_POST['study_pressure'];
-    $stress_frequency = $_POST['stress_frequency'];
+require_once "includes/config.php";
+
+$student_id = $_SESSION['student_id'];
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
+    // --- Student Personal Info ---
     $age = $_POST['age'];
-    $marital_status = $_POST['marital_status'];
+    $gender = $_POST['gender'];
+    $university = $_POST['university'];
+    $year_of_study = $_POST['year_of_study'];
+    $cgpa = $_POST['cgpa'];
 
-    // Basic logic for mental health assessment
-    if ($sleep_hours < 5 && $study_pressure > 7 && $stress_frequency == "Always") {
-        $result = "High Risk";
-        $advice = "You may be experiencing high stress and sleep deprivation. Try to rest, manage your schedule, and talk to a counselor.";
-    } elseif ($sleep_hours >= 5 && $sleep_hours <= 7 && $study_pressure >= 4 && $stress_frequency == "Often") {
-        $result = "Moderate Risk";
-        $advice = "You may be under some stress. Take breaks, maintain a healthy routine, and seek support if needed.";
+    // --- Mental State Inputs ---
+    $sleep = $_POST['sleep'];
+    $pressure = $_POST['pressure'];
+    $social = $_POST['social'];
+    $mood = $_POST['mood'];
+    $anxiety = $_POST['anxiety'];
+
+    // --- Scoring Model ---
+    $score = 0;
+    $score += (10 - $sleep);
+    $score += $pressure;
+    $score += $social;
+    $score += $mood;
+    $score += $anxiety;
+
+    if ($score >= 20) {
+        $risk_level = "High";
+        $advice = "Your stress level appears high. Please consider reaching out to a counselor or trusted mentor. Try reducing academic overload, improve sleep, and practice mindfulness.";
+    } elseif ($score >= 12) {
+        $risk_level = "Moderate";
+        $advice = "Your stress level is moderate. Try maintaining balance between academics and rest, talk to friends, and consider light relaxation exercises.";
     } else {
-        $result = "Low Risk";
-        $advice = "Your mental health seems stable. Continue maintaining a balanced lifestyle.";
+        $risk_level = "Low";
+        $advice = "Your mental wellness appears stable. Continue healthy habits, good sleep routine, and positive social interaction.";
     }
 
-    // Insert into database
-    $stmt = $conn->prepare("INSERT INTO assessments (student_id, sleep_hours, study_pressure, stress_frequency, result, advice) VALUES (?, ?, ?, ?, ?, ?)");
-    $student_id = 1; // You can change this or get it from session later
-    $stmt->bind_param("iiisss", $student_id, $sleep_hours, $study_pressure, $stress_frequency, $result, $advice);
-
-    if ($stmt->execute()) {
-        echo "<div style='padding:20px; background:#e0ffe0; border:1px solid #00b300; border-radius:8px;'>
-                🧠 <strong>Your Mental Health Risk:</strong> $result<br>
-                💬 <strong>Advice:</strong> $advice
-              </div>";
-    } else {
-        echo "<div style='color:red;'>Error saving assessment: " . $stmt->error . "</div>";
-    }
-
+    // --- Save to Database ---
+    $stmt = $conn->prepare("INSERT INTO assessments 
+        (student_id, risk_level, advice, gender, age, university, year_of_study, cgpa) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("isssisss", $student_id, $risk_level, $advice, $gender, $age, $university, $year_of_study, $cgpa);
+    $stmt->execute();
     $stmt->close();
+
+    header("Location: dashboard.php");
+    exit();
 }
 ?>
 
-<!-- Simple HTML Form -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Mental Health Assessment</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f9;
-            padding: 40px;
-        }
-        form {
-            background: white;
-            max-width: 500px;
-            margin: auto;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px #ccc;
-        }
-        input, select, button {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-        }
-        button {
-            background: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        h2 {
-            text-align: center;
-            color: #333;
-        }
-    </style>
+<title>Mental Health Assessment</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-    <form method="POST" action="">
-        <h2>🧩 Mental Health Assessment</h2>
 
-        <label>How many hours do you sleep per day?</label>
-        <input type="number" name="sleep_hours" min="0" max="24" required>
+<body class="bg-light">
+<div class="container py-4">
+<h3>Mental Wellness Assessment</h3>
 
-        <label>How would you rate your study/work pressure? (1-10)</label>
-        <input type="number" name="study_pressure" min="1" max="10" required>
+<form method="POST" class="card p-4">
 
-        <label>How often do you feel stressed?</label>
-        <select name="stress_frequency" required>
-            <option value="">Select</option>
-            <option value="Rarely">Rarely</option>
-            <option value="Sometimes">Sometimes</option>
-            <option value="Often">Often</option>
-            <option value="Always">Always</option>
-        </select>
+<!-- Student Info -->
+<h5>Student Details</h5>
+<div class="row">
+  <div class="col-md-2">
+    <label>Age</label>
+    <input type="number" name="age" class="form-control" required>
+  </div>
+  <div class="col-md-2">
+    <label>Gender</label>
+    <select name="gender" class="form-control" required>
+      <option>Male</option>
+      <option>Female</option>
+    </select>
+  </div>
+  <div class="col-md-4">
+    <label>University / Course</label>
+    <input type="text" name="university" class="form-control" required>
+  </div>
+  <div class="col-md-2">
+    <label>Year of Study</label>
+    <input type="text" name="year_of_study" class="form-control" required>
+  </div>
+  <div class="col-md-2">
+    <label>CGPA</label>
+    <input type="text" name="cgpa" class="form-control" required>
+  </div>
+</div>
 
-        <label>Age</label>
-        <input type="number" name="age" required>
+<hr>
 
-        <label>Marital Status</label>
-        <select name="marital_status" required>
-            <option value="">Select</option>
-            <option value="Single">Single</option>
-            <option value="Married">Married</option>
-            <option value="Divorced">Divorced</option>
-        </select>
+<!-- Mental State Questions -->
+<h5>Mental Health Questions</h5>
 
-        <button type="submit">Get Mental Health Risk</button>
-    </form>
+<label class="mt-2">How many hours do you sleep? (0-10)</label>
+<input type="number" name="sleep" class="form-control" min="0" max="10" required>
+
+<label class="mt-2">Academic Pressure (1-10)</label>
+<input type="number" name="pressure" class="form-control" min="1" max="10" required>
+
+<label class="mt-2">Social Withdrawal (1-10)</label>
+<input type="number" name="social" class="form-control" min="1" max="10" required>
+
+<label class="mt-2">Mood Level (1 = positive, 10 = very low mood)</label>
+<input type="number" name="mood" class="form-control" min="1" max="10" required>
+
+<label class="mt-2">Anxiety (1-10)</label>
+<input type="number" name="anxiety" class="form-control" min="1" max="10" required>
+
+<button class="btn btn-primary mt-4 w-100">Submit Assessment</button>
+
+</form>
+</div>
 </body>
 </html>
